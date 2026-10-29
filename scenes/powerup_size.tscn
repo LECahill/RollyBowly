@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://b71bxu7xx36h"]
+
+[ext_resource type="Script" uid="uid://c7f5iwts5gjky" path="res://scripts/powerup.gd" id="1_awfm6"]
+[ext_resource type="AudioStream" uid="uid://dw0j4n4ktvl50" path="res://art/powerup_sound.mp3" id="2_2m7q0"]
+[ext_resource type="PackedScene" uid="uid://md6psx78dr4k" path="res://art/blueberry.glb" id="2_n3h3r"]
+
+[node name="SizeUp" type="Node3D" unique_id=1852969073]
+script = ExtResource("1_awfm6")
+pickup_sound = ExtResource("2_2m7q0")
+
+[node name="Item" parent="." unique_id=1055192980 instance=ExtResource("2_n3h3r")]

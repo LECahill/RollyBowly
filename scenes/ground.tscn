@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://btcktuf6oms70"]
+
+[ext_resource type="PackedScene" uid="uid://b6v1uwf4p4k8p" path="res://art/backyard_arena.glb" id="1_pybca"]
+[ext_resource type="Shape3D" path="res://resources/arena_collision.tres" id="2_mi8v4"]
+
+[node name="Ground" type="Node3D" unique_id=1602534870]
+
+[node name="Ground" type="StaticBody3D" parent="." unique_id=371799851]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, -1, 0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="backyard_arena" parent="Ground" unique_id=539128654 instance=ExtResource("1_pybca")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground" unique_id=183252860]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
+shape = ExtResource("2_mi8v4")

@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://co4powvanyo4n"]
+
+[ext_resource type="Script" uid="uid://byy1e04jxg6ip" path="res://scripts/mob.gd" id="1_2oslh"]
+[ext_resource type="PackedScene" uid="uid://dqsy7dxnvpgil" path="res://art/ant_soldier.glb" id="2_2oslh"]
+[ext_resource type="AudioStream" uid="uid://bav83elqqm3a4" path="res://art/bowling_pin_sound.wav" id="3_hpa1h"]
+[ext_resource type="AudioStream" uid="uid://be5veukcmvm14" path="res://art/helmet_knockoff.wav" id="4_x21nm"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_yfhaf"]
+size = Vector3(0.60279846, 0.6175823, 1.0892706)
+
+[sub_resource type="Animation" id="Animation_bsing"]
+resource_name = "float"
+length = 1.2
+loop_mode = 1
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_d4cuo"]
+_data = {
+&"float": SubResource("Animation_bsing")
+}
+
+[node name="Soldier" type="CharacterBody3D" unique_id=889215105 node_paths=PackedStringArray("helmet") groups=["mob"]]
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("1_2oslh")
+chases_player = true
+attack_damage = 5
+hits_to_knock = 3
+helmet = NodePath("Pivot/ant_soldier/Helmet")
+
+[node name="Pivot" type="Node3D" parent="." unique_id=341237304]
+
+[node name="ant_soldier" parent="Pivot" unique_id=751513533 instance=ExtResource("2_2oslh")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1154921777]
+transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, 0.022697449, 0.42797327, 0.054889202)
+shape = SubResource("BoxShape3D_yfhaf")
+
+[node name="VisibleOnScreenNotifier3D" type="VisibleOnScreenNotifier3D" parent="." unique_id=991166455]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.36535525, 0.28882194)
+aabb = AABB(-1.2192757, -0.6258, -1.7660041, 2.4385514, 1.2516, 3.5320082)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1975886494]
+libraries/ = SubResource("AnimationLibrary_d4cuo")
+autoplay = &"float"
+
+[node name="HitSound" type="AudioStreamPlayer" parent="." unique_id=1554709954]
+stream = ExtResource("3_hpa1h")
+
+[node name="HelmetSound" type="AudioStreamPlayer" parent="." unique_id=309746579]
+stream = ExtResource("4_x21nm")
+volume_db = -20.0
+
+[connection signal="screen_exited" from="VisibleOnScreenNotifier3D" to="." method="_on_visible_on_screen_notifier_3d_screen_exited"]
+
+[editable path="Pivot/ant_soldier"]

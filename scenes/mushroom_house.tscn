@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://ey5it6yib51e"]
+
+[ext_resource type="Script" uid="uid://ualtojk3lkup" path="res://scripts/house.gd" id="1_2ppoj"]
+[ext_resource type="PackedScene" uid="uid://ccu83q7f6j0iu" path="res://art/mushroom_house.glb" id="1_37ubo"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_1p3rn"]
+height = 4.3881836
+radius = 1.3261719
+
+[node name="MushroomHouse" type="StaticBody3D" unique_id=2053035528]
+script = ExtResource("1_2ppoj")
+
+[node name="mushroom_house" parent="." unique_id=624984606 instance=ExtResource("1_37ubo")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=338374078]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1757975, 0)
+shape = SubResource("CylinderShape3D_1p3rn")
