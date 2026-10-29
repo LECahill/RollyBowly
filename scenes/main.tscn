@@ -4,7 +4,6 @@
 [ext_resource type="PackedScene" uid="uid://cqqiyl7cxwi8f" path="res://scenes/player.tscn" id="1_o5qli"]
 [ext_resource type="PackedScene" uid="uid://dj22htvsf53ht" path="res://scenes/worker.tscn" id="2_sugp2"]
 [ext_resource type="PackedScene" uid="uid://co4powvanyo4n" path="res://scenes/soldier.tscn" id="3_jkv2x"]
-[ext_resource type="FontFile" uid="uid://cyxhh7ddkn62q" path="res://fonts/Montserrat-Medium.ttf" id="4_jyhfs"]
 [ext_resource type="Environment" uid="uid://chwgo2mjjk22p" path="res://resources/backyard_environment.tres" id="4_o6xl0"]
 [ext_resource type="AudioStream" uid="uid://dkbyf52tabcp7" path="res://art/grass_roll.wav" id="5_choun"]
 [ext_resource type="Script" uid="uid://csj31gf7q8ot0" path="res://scenes/score_label.gd" id="5_tbgi4"]
@@ -21,24 +20,6 @@
 [ext_resource type="PackedScene" uid="uid://b71bxu7xx36h" path="res://scenes/powerup_size.tscn" id="17_dp3eg"]
 [ext_resource type="Script" uid="uid://bd4tslsjmrxsj" path="res://scripts/title_screen.gd" id="19_0ld40"]
 [ext_resource type="Script" uid="uid://b1l7q5ewpn6n3" path="res://scripts/cursor.gd" id="20_gqmmt"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_o5qli"]
-albedo_color = Color(0.96862745, 0.54509807, 0, 1)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_yfhaf"]
-material = SubResource("StandardMaterial3D_o5qli")
-
-[sub_resource type="Curve3D" id="Curve3D_o5qli"]
-closed = true
-_data = {
-"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -16.914982, 0, -18.024315, 0, 0, 0, 0, 0, 0, 19.020935, 0, -18.106735, 0, 0, 0, 0, 0, 0, 19.020935, 0, 19.065504, 0, 0, 0, 0, 0, 0, -17.079826, 0, 18.900661),
-"tilts": PackedFloat32Array(0, 0, 0, 0)
-}
-point_count = 4
-
-[sub_resource type="Theme" id="Theme_1p3rn"]
-default_font = ExtResource("4_jyhfs")
-default_font_size = 22
 
 [node name="Main" type="Node" unique_id=1635240652]
 script = ExtResource("1_0wfyh")
@@ -62,35 +43,6 @@ collision_mask = 6
 camera_rig = NodePath("../CameraRig")
 roll_sound = ExtResource("5_choun")
 
-[node name="Cylinders" type="Node3D" parent="." unique_id=1554598249]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0, -18)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Cylinders" unique_id=588199305]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.072275, 0, -16.542843)
-mesh = SubResource("CylinderMesh_yfhaf")
-
-[node name="MeshInstance3D2" type="MeshInstance3D" parent="Cylinders" unique_id=1891642538]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.072275, 0, 53.990005)
-mesh = SubResource("CylinderMesh_yfhaf")
-
-[node name="MeshInstance3D3" type="MeshInstance3D" parent="Cylinders" unique_id=1096480169]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.730537, 0, -16.542843)
-mesh = SubResource("CylinderMesh_yfhaf")
-
-[node name="MeshInstance3D4" type="MeshInstance3D" parent="Cylinders" unique_id=241014394]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.730537, 0, 53.990005)
-mesh = SubResource("CylinderMesh_yfhaf")
-
-[node name="SpawnPath" type="Path3D" parent="." unique_id=107611209]
-curve = SubResource("Curve3D_o5qli")
-
-[node name="SpawnLocation" type="PathFollow3D" parent="SpawnPath" unique_id=1582758464]
-transform = Transform3D(0.002293541, 0, -0.9999974, 0, 1, 0, 0.9999974, 0, 0.002293541, -16.914982, 0, -18.024315)
-
-[node name="MobTimer" type="Timer" parent="." unique_id=2106203536]
-wait_time = 0.5
-autostart = true
-
 [node name="UserInterface" type="Control" parent="." unique_id=1077485159]
 layout_mode = 3
 anchors_preset = 15
@@ -98,41 +50,16 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = SubResource("Theme_1p3rn")
 
 [node name="ScoreLabel" type="Label" parent="UserInterface" unique_id=1360902510]
+visible = false
 layout_mode = 0
 offset_left = 35.0
 offset_top = 23.0
 offset_right = 96.0
 offset_bottom = 46.0
-theme_override_colors/font_color = Color(0, 0, 0, 1)
 text = "Score: 0"
 script = ExtResource("5_tbgi4")
-
-[node name="Retry" type="ColorRect" parent="UserInterface" unique_id=1613364768]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0, 0, 0, 0.39215687)
-
-[node name="Label" type="Label" parent="UserInterface/Retry" unique_id=257801841]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -107.5
-offset_top = -14.0
-offset_right = 107.5
-offset_bottom = 14.0
-grow_horizontal = 2
-grow_vertical = 2
-text = "Press Enter to retry"
 
 [node name="CameraRig" type="Node3D" parent="." unique_id=1408018783 node_paths=PackedStringArray("target")]
 script = ExtResource("8_tipki")
@@ -182,4 +109,3 @@ strike_drop_chance = 0.1
 script = ExtResource("20_gqmmt")
 
 [connection signal="hit" from="Player" to="." method="_on_player_hit"]
-[connection signal="timeout" from="MobTimer" to="." method="_on_mob_timer_timeout"]

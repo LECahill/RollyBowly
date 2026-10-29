@@ -18,8 +18,6 @@ extends CanvasLayer
 ## top row, and the game-over book becomes a single tall page.
 
 @export var ui_folder := "res://ui/"
-@export var hide_old_score_label := true       ## hide the tutorial's ScoreLabel (this shows the score instead)
-@export var hide_old_status_label := false     ## hide Main's status label too (wave / house / bug text)
 @export var ui_scale := 1.0                     ## make everything bigger or smaller (it also follows the window size)
 @export var heart_size := 56.0                  ## design pixels
 @export var pause_button := true                ## round pause button in the top-right corner
@@ -99,16 +97,6 @@ func _ready() -> void:
 	get_tree().node_added.connect(_on_node_added)
 	if main.has_signal("game_ended"):
 		main.game_ended.connect(_on_game_ended)
-	_hide_old_labels.call_deferred()
-
-
-func _hide_old_labels() -> void:
-	if hide_old_score_label:
-		var s := main.find_child("ScoreLabel", true, false)
-		if s:
-			s.visible = false
-	if hide_old_status_label and main.get("status_label"):
-		main.status_label.visible = false
 
 
 # ---------------------------------------------------------------- stats

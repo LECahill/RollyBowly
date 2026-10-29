@@ -8,8 +8,7 @@ extends CharacterBody3D
 ##   ├── Pivot (Node3D)
 ##   │   ├── Unrolled   <- pillbug_unrolled.glb
 ##   │   └── Rolled     <- pillbug_rolled.glb (position y = 0.5 so the ball sits on the ground)
-##   ├── CollisionShape3D   <- SphereShape3D, radius 0.5, position y = 0.5
-##   └── MobDetector (Area3D) <- unchanged from before
+##   └── CollisionShape3D   <- SphereShape3D, radius 0.5, position y = 0.5
 
 signal hit
 signal hp_changed(hp: int, max_hp: int)
@@ -51,11 +50,10 @@ signal roll_ended                     # stopped / popped open
 
 @export_group("Health")
 @export var max_hp := 3                       ## ant bites the bug can take (only while unrolled) before it's game over
-@export var touch_kills := false              ## old tutorial rule: any ant touching the unrolled bug kills it instantly
 @export var bite_invulnerability := 1.0       ## after a bite, the bug can't be bitten again for this long (s)
 
 @export_group("Sound")
-@export var roll_sound: AudioStream            ## looping rolling sound (drag grass_roll.mp3 here)
+@export var roll_sound: AudioStream            ## looping rolling sound (grass_roll.wav)
 @export var roll_volume_db := 0.0             ## loudness at full speed
 @export var roll_min_pitch := 0.75            ## pitch when rolling slowly
 @export var roll_max_pitch := 1.35            ## pitch at full speed
@@ -623,7 +621,6 @@ func _make_arrow() -> MeshInstance3D:
 
 # ---------------------------------------------------------------- power-ups
 
-## Called by a power-up drop when the bug rolls through it.
 ## Called by a power-up drop when the bug rolls through it. color = the drop's colour.
 func apply_powerup(kind: String, color := Color(0.5, 0.38, 1.0)) -> void:
 	match kind:
@@ -718,7 +715,7 @@ func _flat(v: Vector3) -> Vector3:
 	return Vector3(v.x, 0.0, v.z)
 
 
-# ---------------------------------------------------------------- death (unchanged behaviour)
+# ---------------------------------------------------------------- health
 
 func die() -> void:
 	hit.emit()
@@ -759,9 +756,4 @@ func take_bite(amount: int = 1) -> void:
 			if m != _arrow and m.material_overlay == red:
 				m.material_overlay = null)
 	if hp == 0:
-		die()
-
-
-func _on_mob_detector_body_entered(_body: Node3D) -> void:
-	if touch_kills and state == State.IDLE:   # old instant-death rule, off by default (ants bite instead)
 		die()

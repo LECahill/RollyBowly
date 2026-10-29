@@ -88,18 +88,15 @@ func _ready() -> void:
 		house = get_tree().get_first_node_in_group("house")
 	if player == null:
 		player = get_tree().get_first_node_in_group("player")
-	_set_anim_speed()
 
 
-# Called from the Main scene. The second argument is kept for compatibility and isn't needed:
-# ants find the house and the bug by themselves.
-func initialize(start_position: Vector3, _player_position := Vector3.ZERO) -> void:
+# Called from the Main scene. Ants find the house and the bug by themselves.
+func initialize(start_position: Vector3) -> void:
 	position = start_position
 	speed = randf_range(min_speed, max_speed)
 	var to_centre := -Vector3(start_position.x, 0.0, start_position.z)
 	if to_centre.length() > 0.1:
 		rotation.y = atan2(-to_centre.x, -to_centre.z)     # start out facing into the arena
-	_set_anim_speed()
 
 
 func _physics_process(delta: float) -> void:
@@ -271,11 +268,6 @@ func _player_ok() -> bool:
 	return player != null and is_instance_valid(player) and player.is_inside_tree()
 
 
-func _set_anim_speed() -> void:
-	if has_node("AnimationPlayer"):
-		$AnimationPlayer.speed_scale = speed / maxf(min_speed, 0.1)
-
-
 ## Puts the ant's feet on the ground right below it, so it never floats or sinks,
 ## whatever height the arena is at and wherever the ground slopes.
 func _stick_to_ground() -> void:
@@ -289,12 +281,6 @@ func _stick_to_ground() -> void:
 
 func _flat(v: Vector3) -> Vector3:
 	return Vector3(v.x, 0.0, v.z)
-
-
-# Still connected from the tutorial. It used to delete ants that left the screen, which would now
-# delete ants marching on the house whenever the camera looks away, so it deliberately does nothing.
-func _on_visible_on_screen_notifier_3d_screen_exited() -> void:
-	pass
 
 
 ## True while it still has armor left: the next hit only takes armor off instead of knocking it over.
@@ -343,8 +329,6 @@ func knock_over(hit_velocity: Vector3, from_pos = null, smash := false) -> void:
 		var t := create_tween().set_parallel(true)
 		t.tween_property($Pivot, "rotation:z", PI, 0.3).set_trans(Tween.TRANS_BACK)
 		t.tween_property($Pivot, "position:y", $Pivot.position.y + flip_lift, 0.3)
-	if has_node("AnimationPlayer"):
-		$AnimationPlayer.speed_scale = 5.0   # legs flail
 	if dust:
 		_dust_puff()
 	get_tree().create_timer(knocked_time).timeout.connect(squash)

@@ -8,10 +8,6 @@
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_yfhaf"]
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_1p3rn"]
-height = 0.20654297
-radius = 0.9970703
-
 [node name="Player" type="CharacterBody3D" unique_id=2094497799 node_paths=PackedStringArray("unrolled_model", "rolled_model")]
 script = ExtResource("1_cvnsp")
 unrolled_model = NodePath("Pivot/pillbug_unrolled")
@@ -32,20 +28,9 @@ transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 shape = SubResource("SphereShape3D_yfhaf")
 
-[node name="MobDetector" type="Area3D" parent="." unique_id=1132982776]
-collision_layer = 0
-collision_mask = 2
-monitorable = false
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="MobDetector" unique_id=2087045981]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.47396886, 0)
-shape = SubResource("CylinderShape3D_1p3rn")
-
 [node name="Launch" type="AudioStreamPlayer" parent="." unique_id=1213340751]
 stream = ExtResource("4_dqkch")
 
 [node name="Pop" type="AudioStreamPlayer" parent="." unique_id=2080751893]
 stream = ExtResource("5_qlg0r")
 volume_db = -9.689
-
-[connection signal="body_entered" from="MobDetector" to="." method="_on_mob_detector_body_entered"]

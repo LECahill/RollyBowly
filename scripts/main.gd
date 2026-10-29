@@ -7,7 +7,6 @@ extends Node
 
 @export var mob_scene: PackedScene
 @export var house: Node3D                      ## the mushroom house (with house.gd). Empty = found automatically
-@export var status_label: Label                ## optional: shows the wave, ants left, house and bug HP
 
 @export_group("Waves")
 @export var first_wave_ants := 6              ## 6 = one 3-row rack
@@ -31,10 +30,6 @@ extends Node
 @export var max_soldiers := 4                  ## never more than this many per wave
 @export var soldier_escort_distance := 3.0     ## soldiers march this far behind the back row of their group
 
-@export_group("Game over")
-@export var retry_delay := 0.6                 ## ignore clicks / buttons this long after the game-over screen appears,
-											   ## so a click you were already making doesn't restart instantly
-
 @export_group("Testing")
 ## Pretend to be a phone or an iPad when you press Play in the editor: touch-size buttons and text, and
 ## the window takes the device's shape. Only works in the editor; exported games always use the real device.
@@ -51,7 +46,6 @@ var _spawning := false
 var _break_left := 0.0
 var _next_row := 0
 var player: Node3D
-var _retry_ready_ms := 0
 
 
 ## Runs before any of Main's children are ready, so the UI is built for the test phone from the start.
@@ -79,10 +73,6 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
-	$UserInterface/Retry.hide()
-	if has_node("MobTimer"):
-		$MobTimer.stop()                           # spawning is done in waves now
-		$MobTimer.autostart = false
 	if house == null:
 		house = get_tree().get_first_node_in_group("house")
 	if house:
@@ -97,7 +87,6 @@ func _process(delta: float) -> void:
 	if game_over:
 		return
 	if waves_on_hold:
-		_update_status()
 		return
 	if not _spawning and _ants_left() == 0:
 		if _break_left <= 0.0:
@@ -109,7 +98,6 @@ func _process(delta: float) -> void:
 		_break_left -= delta
 		if _break_left <= 0.0:
 			_start_wave()
-	_update_status()
 
 
 func _start_wave() -> void:
@@ -167,7 +155,6 @@ func _spawn_row(count: int, angle: float, soldiers := 0) -> void:
 			if row_speed < 0.0:
 				row_speed = mob.speed
 			mob.speed = row_speed
-			mob._set_anim_speed()
 		add_child(mob)
 		# We connect the mob to the score label to update the score upon squashing one.
 		mob.squashed.connect($UserInterface/ScoreLabel._on_mob_squashed.bind())
@@ -182,7 +169,6 @@ func _spawn_row(count: int, angle: float, soldiers := 0) -> void:
 		soldier.rotation.y = atan2(-forward.x, -forward.z)
 		if row_marches_together and row_speed > 0.0:
 			soldier.speed = row_speed
-			soldier._set_anim_speed()
 		add_child(soldier)
 		soldier.squashed.connect($UserInterface/ScoreLabel._on_mob_squashed.bind())
 
@@ -215,37 +201,20 @@ func _ants_left() -> int:
 	return get_tree().get_nodes_in_group("mob").size()
 
 
-func _update_status() -> void:
-	if status_label == null:
-		return
-	var text := "Wave %d   Ants %d" % [wave, _ants_left()]
-	if not _spawning and _ants_left() == 0 and _break_left > 0.0:
-		text = "Wave %d cleared!   Next wave in %d" % [wave, ceili(_break_left)] if wave > 0 else "Get ready..."
-	if house:
-		text += "   House %d/%d" % [house.hp, house.max_hp]
-	if _player_ok():
-		text += "   Bug %d/%d" % [player.hp, player.max_hp]
-	status_label.text = text
-
-
 func _player_ok() -> bool:
 	return player != null and is_instance_valid(player) and player.is_inside_tree()
 
 
-# Kept so the tutorial's MobTimer connection doesn't error; spawning is done in waves now.
-func _on_mob_timer_timeout() -> void:
-	pass
-
-
 func _on_player_hit() -> void:
-	_end_game("Your rolly polly was overwhelmed!\nClick or press Enter to retry.", "bug")
+	_end_game("bug")
 
 
 func _on_house_destroyed() -> void:
-	_end_game("The house was overrun on wave %d!\nClick or press Enter to retry." % wave, "house")
+	_end_game("house")
 
 
-func _end_game(message: String, reason := "house") -> void:
+## The game-over book (game_ui.gd) listens for game_ended and handles PLAY AGAIN / QUIT.
+func _end_game(reason: String) -> void:
 	if game_over:
 		return
 	game_over = true
@@ -253,25 +222,3 @@ func _end_game(message: String, reason := "house") -> void:
 	if _player_ok():
 		player.set_process_input(false)                          # no more launching
 	game_ended.emit(reason)
-	if get_tree().get_first_node_in_group("game_over_screen"):
-		return                                                   # the game-over book takes over (and handles retry)
-	var label := $UserInterface/Retry.find_child("*", true, false)
-	if label is Label:
-		label.text = message
-	$UserInterface/Retry.show()
-	_retry_ready_ms = Time.get_ticks_msec() + int(retry_delay * 1000.0)
-
-
-# _input, not _unhandled_input: the Retry screen is a full-screen ColorRect, and UI controls use up
-# mouse clicks before _unhandled_input ever sees them. That's why a mouse button in your "Accept"
-# action never restarted the game, while keys and controller buttons (which UI ignores) did.
-func _input(event: InputEvent) -> void:
-	if not game_over or not $UserInterface/Retry.visible or Time.get_ticks_msec() < _retry_ready_ms:
-		return
-	var click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
-	var tap: bool = event is InputEventScreenTouch and event.pressed
-	var pad_a: bool = event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_A
-	if click or tap or pad_a or event.is_action_pressed("Accept"):
-		get_viewport().set_input_as_handled()
-		# This restarts the current scene.
-		get_tree().reload_current_scene()

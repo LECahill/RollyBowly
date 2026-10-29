@@ -1,2 +1,4 @@
+# Godot editor cache: rebuilt automatically when the project is opened
+.godot/
 .import
 logs/
