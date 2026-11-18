@@ -30,6 +30,15 @@ extends Node
 @export var max_soldiers := 4                  ## never more than this many per wave
 @export var soldier_escort_distance := 3.0     ## soldiers march this far behind the back row of their group
 
+@export_group("Multiplayer ants")
+@export var sprinter_speed := 1.9             ## sprinters walk this many times faster than a normal ant
+@export var queen_scale := 1.7                ## the queen is this much bigger (looks and hitbox)
+@export var queen_hits := 3                   ## hits to knock her over
+@export var queen_speed := 0.6                ## she walks slower than her escort
+@export var queen_lay_every := 5.0            ## seconds between eggs (each egg = one worker ant)
+@export var queen_max_brood := 6              ## she stops laying after this many
+
+
 @export_group("Testing")
 ## Pretend to be a phone or an iPad when you press Play in the editor: touch-size buttons and text, and
 ## the window takes the device's shape. Only works in the editor; exported games always use the real device.
@@ -81,6 +90,9 @@ func _ready() -> void:
 		push_warning("Main: no house found. Attach house.gd to the mushroom house.")
 	player = get_node_or_null("Player")
 	_break_left = 2.0                              # short pause before the first wave
+	if Net.online:                                 # multiplayer match: same random waves for everyone, plus the online HUD
+		seed(Net.match_seed)
+		add_child(preload("res://net/mp_hud.gd").new())
 
 
 func _process(delta: float) -> void:
@@ -125,7 +137,8 @@ func _start_wave() -> void:
 
 ## A group of ants racked up like bowling pins on the rim: the point of the triangle (the head pin)
 ## faces the house, the way pins face the bowler. The group marches in formation until it's close.
-func _spawn_row(count: int, angle: float, soldiers := 0) -> void:
+func _spawn_row(count: int, angle: float, soldiers := 0) -> Array[Node3D]:
+	var spawned: Array[Node3D] = []
 	var centre := Vector3.ZERO
 	var radius := 30.0
 	if _player_ok() and player.get("_arena_known"):
@@ -156,6 +169,7 @@ func _spawn_row(count: int, angle: float, soldiers := 0) -> void:
 				row_speed = mob.speed
 			mob.speed = row_speed
 		add_child(mob)
+		spawned.append(mob)
 		# We connect the mob to the score label to update the score upon squashing one.
 		mob.squashed.connect($UserInterface/ScoreLabel._on_mob_squashed.bind())
 
@@ -170,7 +184,120 @@ func _spawn_row(count: int, angle: float, soldiers := 0) -> void:
 		if row_marches_together and row_speed > 0.0:
 			soldier.speed = row_speed
 		add_child(soldier)
+		spawned.append(soldier)
 		soldier.squashed.connect($UserInterface/ScoreLabel._on_mob_squashed.bind())
+	return spawned
+
+
+## Multiplayer: ants another player sent into this backyard (their STRIKE / SPARE / combo).
+##   workers + soldiers -> a normal rack with soldier escorts
+##   sprinters          -> a small rack of fast, blue-tinted ants from another side
+##   queens             -> a big purple ant (3 hits) that lays an ant every few seconds until bowled
+## Every ant is tagged with who sent it and what was sent, so a STRIKE on the group can
+## bounce the attack back (COUNTER-BOWL, see net/mp_hud.gd). Returns every ant it made.
+func spawn_incoming(attack: Dictionary, from_id := 0, from_name := "", color := Color.WHITE, uid := 0) -> Array[Node3D]:
+	var all: Array[Node3D] = []
+	if game_over:
+		return all
+	var angle := randf() * TAU
+	var workers := int(attack.get("workers", 0))
+	var soldiers := int(attack.get("soldiers", 0)) if soldier_scene else 0
+	if workers > 0 or soldiers > 0:
+		var rack := _spawn_row(maxi(workers, 1), angle, soldiers)
+		_name_tag(rack[0], from_name, color)
+		all.append_array(rack)
+	var sprinters := int(attack.get("sprinters", 0))
+	if sprinters > 0:
+		var fast := _spawn_row(sprinters, angle + PI * 0.6, 0)
+		for m in fast:
+			m.set("speed", float(m.get("speed")) * sprinter_speed)
+			var pivot := m.get_node_or_null("Pivot") as Node3D
+			if pivot:
+				pivot.scale *= 0.8
+			_tint(m, Color(0.3, 0.6, 1.0, 0.45))
+		_name_tag(fast[0], from_name, color)
+		all.append_array(fast)
+	for q in int(attack.get("queens", 0)):
+		var queen := _spawn_row(1, angle - PI * 0.6 + q * 0.5, 0)[0]
+		_make_queen(queen)
+		_name_tag(queen, from_name, color)
+		all.append(queen)
+	for m in all:
+		m.set_meta("sent_by", from_id)
+		m.set_meta("sent_attack", attack)
+		m.set_meta("sent_uid", uid)
+	return all
+
+
+func _make_queen(q: Node3D) -> void:
+	q.set("hits_to_knock", queen_hits)
+	q.set("_hits_left", queen_hits)               # its _ready already ran: set the live counter too
+	q.set("speed", float(q.get("speed")) * queen_speed)
+	q.set("attack_damage", int(q.get("attack_damage")) * 2)
+	q.set("row_count", 1)                          # a lone queen is never part of a STRIKE
+	var pivot := q.get_node_or_null("Pivot") as Node3D
+	if pivot:
+		pivot.scale *= queen_scale
+	for c in q.get_children():                     # a bigger hitbox to match (shape resources are shared: copy first)
+		var cs := c as CollisionShape3D
+		if cs == null or cs.shape == null:
+			continue
+		var sh := cs.shape.duplicate() as Shape3D
+		var box := sh as BoxShape3D
+		var ball := sh as SphereShape3D
+		var pill := sh as CapsuleShape3D
+		if box:
+			box.size *= queen_scale
+		elif ball:
+			ball.radius *= queen_scale
+		elif pill:
+			pill.radius *= queen_scale
+			pill.height *= queen_scale
+		cs.shape = sh
+	_tint(q, Color(0.7, 0.25, 0.95, 0.45))
+	var brood := preload("res://net/queen_brood.gd").new()
+	brood.main = self
+	brood.every = queen_lay_every
+	brood.max_brood = queen_max_brood
+	q.add_child(brood)
+
+
+## One worker ant at a spot (the queen's eggs). Scores like any other ant.
+func spawn_mob_at(pos: Vector3) -> Node3D:
+	if game_over:
+		return null
+	var mob: Mob = mob_scene.instantiate()
+	mob.initialize(pos)
+	add_child(mob)
+	mob.squashed.connect($UserInterface/ScoreLabel._on_mob_squashed.bind())
+	return mob
+
+
+func _tint(m: Node, color: Color) -> void:
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.albedo_color = color
+	for g in m.find_children("*", "GeometryInstance3D", true, false):
+		g.material_overlay = mat
+
+
+## The sender's name floating over an ant, in their colour.
+func _name_tag(m: Node3D, text: String, color: Color) -> void:
+	if text == "" or m == null:
+		return
+	var tag := Label3D.new()
+	tag.text = text
+	tag.modulate = color
+	tag.outline_modulate = Color(0.2, 0.1, 0.05)
+	tag.outline_size = 18
+	tag.font_size = 72
+	tag.pixel_size = 0.012
+	tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	tag.no_depth_test = true
+	tag.position = Vector3(0, 2.4, 0)
+	m.add_child(tag)
 
 
 ## How many soldiers come with a given wave.

@@ -77,6 +77,8 @@ func _can_pause() -> bool:
 	var main := get_parent()
 	if main.get("game_over") == true or main.get("waves_on_hold") == true:
 		return false                                          # game-over book or title screen is up
+	if Net.online:
+		return false                                          # online the backyard can't stop: everyone else keeps playing
 	return true
 
 
@@ -203,15 +205,11 @@ func _quit() -> void:
 	if _busy:
 		return
 	_busy = true
-	for c in ProjectSettings.get_global_class_list():         # make the title screen show again
-		if c["class"] == "TitleScreen":
-			var script = load(c["path"])
-			if script:
-				script.set("shown_once", false)
 	PadUI.clear()
 	get_tree().paused = false
 	Engine.time_scale = 1.0
-	get_tree().reload_current_scene()
+	Net.leave()
+	Net._go(Net.MENU_SCENE)                                   # the connect menu is the front door now
 
 
 # ---------------------------------------------------------------- music on / off

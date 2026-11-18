@@ -86,7 +86,7 @@ func _ready() -> void:
 	_build_wave_tab()
 	_build_score()
 	_build_hearts()
-	if pause_button:
+	if pause_button and not Net.online:              # online there's no pausing (the others keep playing)
 		_build_pause_button()
 	_hook_player.call_deferred()
 	if house_bar:
@@ -655,6 +655,12 @@ func _book_content(left: Rect2, right: Rect2, reason: String, delay: float, comp
 	var score := _score()
 	var combo := get_tree().get_first_node_in_group("combo")
 	var msg := "The house was overrun!" if reason == "house" else "Your rolly polly was overwhelmed!"
+	if reason == "win":
+		msg = "Last house standing - YOU WIN!"
+	elif Net.online:
+		var place := int(Net.me().get("place", 0))
+		if place > 0:
+			msg += "  (%s of %d)" % [Net.ordinal(place), Net.match_size]
 
 	# ---- left page: the score, then the run's highlights
 	delay = _page_text(msg, 26, INK, Rect2(left.position, Vector2(left.size.x, left.size.y * 0.1)), delay)
@@ -703,7 +709,7 @@ func _book_content(left: Rect2, right: Rect2, reason: String, delay: float, comp
 	btn.position = Vector2(bx + bsz.x + gap, right.end.y - bsz.y * 1.05)
 	var quit := _add_quit_button(Vector2(bx, btn.position.y), bsz, delay)
 	_book_root.add_child(btn)
-	var bl := _label("PLAY AGAIN", 26.0 * _tb, CREAM, btn, 8, Color(0.1, 0.45, 0.1))
+	var bl := _label("WATCH" if Net.online else "PLAY AGAIN", 26.0 * _tb, CREAM, btn, 8, Color(0.1, 0.45, 0.1))
 	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bl.size = Vector2(bsz.x, bsz.y * 0.82)
@@ -774,15 +780,10 @@ func _quit_to_menu() -> void:
 		return
 	_restarting = true
 	PadUI.clear()
-	# tell the title screen to show again after the reload (it normally only shows on first launch)
-	for c in ProjectSettings.get_global_class_list():
-		if c["class"] == "TitleScreen":
-			var script = load(c["path"])
-			if script:
-				script.set("shown_once", false)
 	await get_tree().create_timer(0.18, true, false, true).timeout   # let the button spring back first
 	Engine.time_scale = 1.0
-	get_tree().reload_current_scene()
+	Net.leave()
+	Net._go(Net.MENU_SCENE)                              # the connect menu is the front door now (solo and online)
 
 
 func _page_text(text: String, size: float, color: Color, area: Rect2, delay: float) -> float:
@@ -916,6 +917,9 @@ func _input(event: InputEvent) -> void:
 func _play_again() -> void:
 	if Time.get_ticks_msec() < _ready_ms or _restarting:
 		return
+	if Net.online:
+		_close_book_to_watch()                           # online: no restarting alone, watch the others finish
+		return
 	_restarting = true
 	PadUI.clear()
 	if _play_btn and not _play_btn.button_pressed:       # Enter / A: show the press too
@@ -925,3 +929,17 @@ func _play_again() -> void:
 	await get_tree().create_timer(0.18, true, false, true).timeout   # let the button spring back first
 	Engine.time_scale = 1.0
 	get_tree().reload_current_scene()
+
+
+## Online, after you're knocked out (or you won): fold the book away and watch the scoreboard and chat.
+## The server brings everyone back to the lobby when the match ends.
+func _close_book_to_watch() -> void:
+	_book_open = false
+	_stop_pulse()
+	PadUI.clear()
+	if _book_root:
+		var t := create_tween()
+		t.tween_property(_book_root, "modulate:a", 0.0, 0.25)
+		t.tween_callback(_book_root.queue_free)
+		_book_root = null
+	_book_built = false

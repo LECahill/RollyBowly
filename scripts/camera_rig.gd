@@ -137,6 +137,8 @@ func _input(event: InputEvent) -> void:
 			_yaw_target -= deg_to_rad(rotate_step_deg)
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
+		if get_viewport().gui_get_focus_owner() is LineEdit:
+			return                                           # typing in the chat: Q and E are letters, not camera keys
 		if event.keycode == rotate_left_key or event.physical_keycode == rotate_left_key:
 			_yaw_target += deg_to_rad(rotate_step_deg)
 		elif event.keycode == rotate_right_key or event.physical_keycode == rotate_right_key:

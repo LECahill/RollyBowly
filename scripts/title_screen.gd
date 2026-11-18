@@ -37,6 +37,9 @@ var _resize_token := 0
 
 
 func _ready() -> void:
+	if Net.online:                                   # online match: the lobby already did the welcoming
+		queue_free()
+		return
 	if shown_once or (OS.has_feature("editor") and not show_in_editor_runs):
 		queue_free()
 		return

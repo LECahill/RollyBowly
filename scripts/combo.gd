@@ -33,6 +33,15 @@ extends CanvasLayer
 @export var settle_time := 0.5               ## after the roll ends, wait this long with no more ants falling before the combo banner
 
 signal strike_scored(pos: Vector3)       # where the last pin of a STRIKE fell (power-up drops listen for this)
+## Multiplayer: this roll earned an attack on another backyard (net/mp_hud.gd decides what happens:
+## block an incoming attack, COUNTER-BOWL it back, or send it). Nothing listens in solo play.
+##   attack = {workers, soldiers, sprinters, queens}
+##   STRIKE -> soldiers (a rack of 3..5 workers escorted by 1-2 soldiers)
+##   SPARE  -> 3 sprinters (small, fast ants)
+##   4+ combo in one roll -> a queen (lays ants until she's bowled over) + (combo - 4) workers, at most 4
+## struck = the last ant of the group that was STRIKEd (null otherwise): if that group was sent to us
+## by another player, mp_hud bounces it back (COUNTER-BOWL).
+signal attack_earned(attack: Dictionary, reason: String, struck: Node)
 
 const STRIKE_COLOR := Color(1.0, 0.82, 0.15)
 const SPARE_COLOR := Color(0.55, 0.9, 1.0)
@@ -200,6 +209,8 @@ func _finish_roll() -> void:
 			_sub.text += "     x%d combo  +%d" % [combo, roll_points]
 	elif combo >= 2:
 		var title := {2: "DOUBLE!", 3: "TRIPLE!"}.get(combo, "%d-ANT COMBO!" % combo) as String
+		if combo >= 4:
+			attack_earned.emit({"queens": 1, "workers": mini(combo - 4, 4)}, "%d-COMBO" % combo, null)
 		_show_banner(title, "+%d" % roll_points, Color.from_hsv(lerpf(0.15, 0.0, clampf((combo - 1) / 5.0, 0.0, 1.0)), 0.8, 1.0), 0.75)
 		_play(combo_sound)
 	_hide_counter()
@@ -226,6 +237,7 @@ func _check_row(mob: Node, roll: int) -> void:
 		_strike(mob)
 	elif attempts == 2:                            # like bowling: a spare only counts on the second ball
 		spares += 1
+		attack_earned.emit({"sprinters": 3}, "SPARE", null)
 		_add_score(spare_bonus)
 		_row_banner_ms = Time.get_ticks_msec()
 		_show_banner("SPARE!", "+%d" % spare_bonus, SPARE_COLOR, 0.8)
@@ -236,6 +248,9 @@ func _strike(mob: Node) -> void:
 	_row_banner_ms = Time.get_ticks_msec()
 	strikes += 1
 	strike_scored.emit(mob.global_position)
+	var group_size = mob.get("row_count")
+	var n := int(group_size) if group_size != null else 4
+	attack_earned.emit({"workers": clampi(n / 2, 3, 5), "soldiers": 2 if n >= 6 else 1}, "STRIKE", mob)
 	_add_score(strike_bonus)
 	_show_banner("STRIKE!", "+%d" % strike_bonus, STRIKE_COLOR, 1.0)
 	_play(strike_sound)
